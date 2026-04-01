@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 
 from app.models.ai import PlanRequest, PlanResponse
 from app.services.ai_memory_service import (
@@ -7,8 +7,6 @@ from app.services.ai_memory_service import (
 )
 from app.services.grok_service import call_grok_chat
 from app.services.report_context_service import get_report_context
-from app.services.auth_service import require_auth
-from app.database import students_collection
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -25,12 +23,7 @@ SYSTEM_PROMPT = (
 async def generate_plan(
     student_id: str,
     payload: PlanRequest,
-    ctx: dict = Depends(require_auth),
 ) -> PlanResponse:
-    if ctx["role"] == "STUDENT":
-        student = await students_collection.find_one({"student_id": student_id})
-        if not student or student.get("clerk_user_id") != ctx["user_id"]:
-            raise HTTPException(status_code=403, detail="Forbidden")
     report_text = get_report_context(student_id)
     if not report_text:
         raise HTTPException(

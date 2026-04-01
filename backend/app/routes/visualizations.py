@@ -3,6 +3,8 @@ from typing import List
 
 from fastapi import APIRouter
 
+from app.services.visualization_service import generate_visualizations
+
 router = APIRouter(prefix="/api/visualizations", tags=["visualizations"])
 
 _VIS_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
@@ -36,5 +38,10 @@ def _list_visualizations(directory: Path) -> List[dict]:
 
 @router.get("/list")
 async def list_visualizations():
-    visualizations_dir = (Path(__file__).resolve().parent.parent / "visualizations").resolve()
+    visualizations_dir = (Path(__file__).resolve().parent.parent.parent / "visualizations").resolve()
     return _list_visualizations(visualizations_dir)
+
+
+@router.post("/generate")
+async def generate_visualizations_now():
+    return await generate_visualizations()

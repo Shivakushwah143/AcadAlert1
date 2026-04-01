@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 
 def _visualizations() -> List[Dict[str, Any]]:
-    vis_dir = (Path(__file__).resolve().parent.parent / "visualizations").resolve()
+    vis_dir = (Path(__file__).resolve().parent.parent.parent / "visualizations").resolve()
     if not vis_dir.exists():
         return []
 
@@ -35,7 +35,7 @@ def _visualizations() -> List[Dict[str, Any]]:
 
 
 def _report_status() -> Dict[str, Any]:
-    reports_dir = (Path(__file__).resolve().parent.parent / "reports").resolve()
+    reports_dir = (Path(__file__).resolve().parent.parent.parent / "reports").resolve()
     if not reports_dir.exists():
         return {"generated": 0, "latest_report_at": None}
 

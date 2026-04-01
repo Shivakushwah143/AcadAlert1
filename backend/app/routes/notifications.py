@@ -73,7 +73,8 @@ async def send_report_email(student_id: str, payload: EmailReportRequest) -> Ema
         base64.b64encode(ics_content.encode("utf-8")).decode("utf-8"),
     )
 
-    to_list = [{"email": payload.recipient_email, "name": payload.recipient_name or ""}]
+    recipient_name = payload.recipient_name or student.get("student_name") or "Student"
+    to_list = [{"email": payload.recipient_email, "name": recipient_name}]
     cc_list = []
     if payload.advisor_email:
         cc_list.append({"email": payload.advisor_email, "name": "Advisor"})
@@ -95,7 +96,7 @@ async def send_report_email(student_id: str, payload: EmailReportRequest) -> Ema
         message_id = response.get("messageId", "")
     except Exception as exc:
         logger.error("Brevo send failed: %s", exc)
-        raise HTTPException(status_code=500, detail="Email send failed")
+        raise HTTPException(status_code=500, detail=str(exc))
 
     await record_send(student_id, payload.recipient_email)
 

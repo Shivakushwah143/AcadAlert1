@@ -329,6 +329,7 @@ from app.ml_model import risk_predictor
 from app.database import students_collection, predictions_collection
 from app.models.student import PredictionRequest, PredictionResponse, DashboardStats
 from app.services.auth_service import require_role, require_auth
+from app.services.visualization_service import generate_visualizations
 from datetime import datetime
 import logging
 
@@ -364,7 +365,7 @@ async def upload_csv(file: UploadFile = File(...)) -> dict:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/predict-all/{file_id}")
-async def predict_all_students(file_id: str):
+async def predict_all_students(file_id: str, background_tasks: BackgroundTasks):
     """Run predictions on all students from uploaded file"""
     try:
         students = await students_collection.find({"file_id": file_id}).to_list(None)
@@ -420,6 +421,8 @@ async def predict_all_students(file_id: str):
             "predictions": convert_objectid_to_str(predictions),
             "reports_pending": True,
         }
+
+        background_tasks.add_task(generate_visualizations)
 
         return response_data
 
