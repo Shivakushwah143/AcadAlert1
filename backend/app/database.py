@@ -19,6 +19,7 @@ uploads_collection = database["uploads"]
 ai_conversations_collection = database["ai_conversations"]
 email_limits_collection = database["email_send_limits"]
 email_send_logs_collection = database["email_send_logs"]
+plans_collection = database["plans"]
 
 # Function to check database connection
 async def check_db_connection():

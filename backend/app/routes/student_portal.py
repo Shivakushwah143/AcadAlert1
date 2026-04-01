@@ -3,8 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.database import predictions_collection, students_collection
 from app.services.auth_service import require_role
 from app.services.pdf_service import generate_student_report
-from app.services.report_context_service import get_report_context
-from app.services.grok_service import call_grok_chat
+from app.services.plan_service import generate_and_save_plan
 
 router = APIRouter(prefix="/api/student", tags=["student"])
 
@@ -53,24 +52,13 @@ async def generate_my_report(ctx: dict = Depends(require_role("STUDENT"))):
 @router.post("/me/ai-plan", dependencies=[Depends(require_role("STUDENT"))])
 async def generate_my_ai_plan(ctx: dict = Depends(require_role("STUDENT"))):
     student = await _get_student_for_user(ctx["user_id"])
-    report_text = get_report_context(student.get("student_id"))
-    if not report_text:
-        raise HTTPException(status_code=404, detail="No report found")
+    plan_payload = await generate_and_save_plan(
+        student_id=student.get("student_id"),
+        question="Generate a short improvement plan.",
+        generated_by="student_portal",
+    )
 
-    messages = [
-        {
-            "role": "system",
-            "content": "You are an academic coach. Provide actionable steps.",
-        },
-        {
-            "role": "user",
-            "content": f"Report Context:\n{report_text}\n\nGenerate a short plan.",
-        },
-    ]
-
-    plan_text = call_grok_chat(messages)
-
-    return {"plan": plan_text}
+    return {"plan": plan_payload["plan_text"]}
 
 
 @router.post("/me/link", dependencies=[Depends(require_role("STUDENT"))])

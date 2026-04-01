@@ -75,7 +75,7 @@ async def send_high_risk_reports() -> AutoEmailResponse:
         report_path = find_latest_report_path(student.get("student_id"))
         if not report_path:
             prediction_data = prediction or {"risk_level": "HIGH", "risk_score": 0}
-            report_path = generate_student_report(student, prediction_data)
+            report_path = await generate_student_report(student, prediction_data)
 
         report_text = get_report_context(student.get("student_id")) or ""
         plan_payload = generate_plan_summary(report_text)

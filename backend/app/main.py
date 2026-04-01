@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from app.routes.ai import router as ai_router
+from app.database import plans_collection
 from app.routes.notifications import router as notifications_router
 from app.routes.notifications_auto import router as notifications_auto_router
 from app.routes.config import router as config_router
@@ -13,6 +14,11 @@ from app.routes.visualizations import router as visualizations_router
 from app.routes.overview import router as overview_router
 
 app = FastAPI()
+
+
+@app.on_event("startup")
+async def ensure_indexes() -> None:
+    await plans_collection.create_index("student_id", unique=True)
 
 app.add_middleware(
     CORSMiddleware,

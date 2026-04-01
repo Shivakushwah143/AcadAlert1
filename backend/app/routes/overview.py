@@ -124,7 +124,7 @@ async def generate_reports_batch(batch_size: int = 10, file_id: Optional[str] = 
             prediction = await predictions_collection.find_one(
                 {"student_id": student.get("student_id")}
             )
-            filepath = generate_student_report(
+            filepath = await generate_student_report(
                 student_data=student,
                 prediction_data=prediction or {"risk_level": "LOW", "risk_score": 0},
                 risk_factors=[],
