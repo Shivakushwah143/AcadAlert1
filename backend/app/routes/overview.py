@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -56,10 +57,12 @@ def _report_status() -> Dict[str, Any]:
 @router.get("/overview")
 async def get_overview(limit: int = 200):
     try:
-        total_students = await students_collection.count_documents({})
-        high_risk = await predictions_collection.count_documents({"risk_level": "HIGH"})
-        medium_risk = await predictions_collection.count_documents({"risk_level": "MEDIUM"})
-        low_risk = await predictions_collection.count_documents({"risk_level": "LOW"})
+        total_students, high_risk, medium_risk, low_risk = await asyncio.gather(
+            students_collection.count_documents({}),
+            predictions_collection.count_documents({"risk_level": "HIGH"}),
+            predictions_collection.count_documents({"risk_level": "MEDIUM"}),
+            predictions_collection.count_documents({"risk_level": "LOW"}),
+        )
 
         total_predicted = high_risk + medium_risk + low_risk
         risk_percentages = {
@@ -68,11 +71,17 @@ async def get_overview(limit: int = 200):
             "low": round((low_risk / total_predicted * 100) if total_predicted > 0 else 0, 2),
         }
 
-        students = await students_collection.find().limit(limit).to_list(limit)
+        students = await students_collection.find({}, {"_id": 1, "student_id": 1, "student_name": 1, "attendance_percentage": 1, "internal_marks": 1, "assignment_submission_rate": 1, "semester": 1}).limit(limit).to_list(limit)
+        student_ids = [s.get("student_id") for s in students if s.get("student_id") is not None]
+        predictions = []
+        if student_ids:
+            predictions = await predictions_collection.find(
+                {"student_id": {"$in": student_ids}},
+                {"student_id": 1, "risk_level": 1, "risk_score": 1},
+            ).to_list(None)
+        pred_map = {p.get("student_id"): p for p in predictions if p.get("student_id") is not None}
         for student in students:
-            prediction = await predictions_collection.find_one(
-                {"student_id": student.get("student_id")}
-            )
+            prediction = pred_map.get(student.get("student_id"))
             if prediction:
                 student["risk_level"] = prediction.get("risk_level")
                 student["risk_score"] = prediction.get("risk_score")
