@@ -1027,6 +1027,7 @@ export default function AcadAlertApp() {
   const [planText, setPlanText] = useState<string | null>(null);
   const [planQuestion, setPlanQuestion] = useState("");
   const [isPlanLoading, setIsPlanLoading] = useState(false);
+  const [planHistory, setPlanHistory] = useState<Array<{ question: string; plan: string; createdAt: string }>>([]);
   const [visualizations, setVisualizations] = useState<VisualizationType[]>([]);
   const [loadingViz, setLoadingViz] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -1140,6 +1141,14 @@ export default function AcadAlertApp() {
         planQuestion || "Generate a personalized improvement plan based on my risk assessment."
       );
       setPlanText(result.plan);
+      setPlanHistory((prev) => [
+        {
+          question: planQuestion || "Generate a personalized improvement plan based on my risk assessment.",
+          plan: result.plan,
+          createdAt: new Date().toLocaleString(),
+        },
+        ...prev,
+      ]);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to generate plan.";
       setErrorMessage(message);
@@ -1156,12 +1165,79 @@ export default function AcadAlertApp() {
     try {
       const result = await generatePlan(selectedStudent.student.student_id, question);
       setPlanText(result.plan);
+      setPlanHistory((prev) => [
+        {
+          question,
+          plan: result.plan,
+          createdAt: new Date().toLocaleString(),
+        },
+        ...prev,
+      ]);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to generate plan.";
       setErrorMessage(message);
     } finally {
       setIsPlanLoading(false);
     }
+  };
+
+  const renderPlan = (plan?: string | null) => {
+    if (!plan) {
+      return (
+        <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+          <div className="flex items-start gap-2">
+            <span className="mt-1 h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" />
+            <span>Focus on attendance consistency and submit all pending assignments this week.</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="mt-1 h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" />
+            <span>Schedule two short revision blocks for the lowest-performing subjects.</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="mt-1 h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" />
+            <span>Book one check-in with an advisor to track progress and adjust goals.</span>
+          </div>
+        </div>
+      );
+    }
+    const lines = plan.split("\n").map((l) => l.trim()).filter(Boolean);
+    const sections: Array<{ title: string; items: string[] }> = [];
+    let current: { title: string; items: string[] } | null = null;
+
+    for (const line of lines) {
+      const isHeading = line.endsWith(":") && line.length <= 40;
+      if (isHeading) {
+        if (current) sections.push(current);
+        current = { title: line.replace(/:$/, ""), items: [] };
+        continue;
+      }
+      const cleaned = line.replace(/^\d+\)\s*|^\-\s*|^\u2022\s*/, "");
+      if (!current) {
+        current = { title: "Plan", items: [] };
+      }
+      current.items.push(cleaned);
+    }
+    if (current) sections.push(current);
+
+    return (
+      <div className="space-y-4">
+        {sections.map((section) => (
+          <div key={section.title}>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+              {section.title}
+            </p>
+            <ul className="space-y-2">
+              {section.items.map((item, idx) => (
+                <li key={`${section.title}-${idx}`} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   const handleGenerateReportsBatch = async () => {
@@ -1376,10 +1452,36 @@ export default function AcadAlertApp() {
                     </button>
                   </div>
                 </div>
-                <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-4 border border-gray-100 dark:border-gray-700">
-                  <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-4 border border-gray-100 dark:border-gray-700"
+                >
+                  <motion.div
+                    initial={{ scale: 0.98 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className="relative rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700"
+                  >
                     <img src="/img1.jpg" alt="Product overview" className="w-full h-64 md:h-80 object-cover" />
-                  </div>
+                    <motion.div
+                      animate={{ y: [0, -6, 0] }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute top-4 left-4 rounded-2xl bg-white/90 dark:bg-gray-900/90 backdrop-blur px-3 py-2 shadow-lg border border-white/60 dark:border-gray-700/60"
+                    >
+                      <p className="text-xs text-gray-500">Live Accuracy</p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">98%</p>
+                    </motion.div>
+                    <motion.div
+                      animate={{ y: [0, 6, 0] }}
+                      transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute bottom-4 right-4 rounded-2xl bg-white/90 dark:bg-gray-900/90 backdrop-blur px-3 py-2 shadow-lg border border-white/60 dark:border-gray-700/60"
+                    >
+                      <p className="text-xs text-gray-500">Students</p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">12k+</p>
+                    </motion.div>
+                  </motion.div>
                   <div className="mt-4 grid grid-cols-3 gap-3">
                     {[
                       { label: "At-risk", value: "14%" },
@@ -1392,7 +1494,7 @@ export default function AcadAlertApp() {
                       </div>
                     ))}
                   </div>
-                </div>
+                </motion.div>
               </div>
 
               <div className="max-w-3xl mx-auto">
@@ -1944,6 +2046,23 @@ export default function AcadAlertApp() {
                             </div>
                           </div>
                         </motion.div>
+                      )}
+
+                      {planHistory.length > 0 && (
+                        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5">
+                          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Generated Plans</h4>
+                          <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                            {planHistory.map((item, idx) => (
+                              <div key={`${item.createdAt}-${idx}`} className="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/60 p-3">
+                                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                  <span>{item.question}</span>
+                                  <span>{item.createdAt}</span>
+                                </div>
+                                {renderPlan(item.plan)}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   ) : (
